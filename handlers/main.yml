@@ -1,0 +1,29 @@
+---
+- name: load ip6tables rules
+  shell: "ip6tables-restore < /etc/sysconfig/ip6tables"
+
+- name: load iptables rules
+  shell: "iptables-restore < /etc/sysconfig/iptables"
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: enforce kafka permissions
+  file:
+    path: "{{ kafka_path }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: 0750
+    recurse: yes
+
+- name: restart zookeeper
+  systemd:
+    name: confluent-zookeeper
+    state: restarted
+
+- name: restart kafka broker service
+  systemd:
+    name: confluent-server
+    state: restarted

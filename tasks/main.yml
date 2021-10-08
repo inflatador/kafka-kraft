@@ -1,0 +1,132 @@
+---
+
+- name: Load OS-specific vars
+  include_vars: "{{lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "../../group_vars/linux/{{ ansible_facts['os_family'] }}.yml"
+
+#
+# - name: see if group_vars worked
+#   debug:
+#     msg: "{{ kafka_broker_rules }}"
+#
+
+- name: Set SELinux to permissive
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+
+# must not use quotes in the block: section
+- name: insert broker-specific iptables rules
+  blockinfile:
+    block: |
+      {{ kafka_broker_rules }}
+    path: "{{ iptables_path }}"
+    insertafter: "## BEGIN HOST-SPECIFIC RULES"
+  notify: load iptables rules
+  ignore_errors: yes
+
+- name: create kafka user
+  user:
+    name: kafka
+    shell: /bin/false
+
+- name: install openjdk and related pkgs
+  dnf:
+    name: "{{ pkgs }}"
+    state: latest
+  vars:
+    pkgs:
+    - java-latest-openjdk-headless
+    - java-latest-openjdk-src
+
+- name: build kafka directory structures
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: 0755
+    recurse: yes
+  loop:
+    - "{{ kafka_path }}"
+    - "{{ kafka_log_dir }}"
+
+# https://downloads.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz
+- name: download kafka source
+  get_url:
+    url: "https://downloads.apache.org/kafka/{{kafka_vers}}/kafka_{{scala_vers}}-{{kafka_vers}}.tgz"
+    dest: /tmp/kafka_{{scala_vers}}-{{kafka_vers}}.tgz
+
+- name: expand tarball to source folder
+  unarchive:
+    src: "/tmp/kafka_{{scala_vers}}-{{kafka_vers}}.tgz"
+    dest: "{{ kafka_path }}"
+    remote_src: yes
+    owner: root
+    group: root
+    mode: 0640
+  notify: enforce kafka permissions
+
+- name: symlink kafka dirs to latest
+  file:
+    state: link
+    src: "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}"
+    dest: "{{ kafka_path }}/latest"
+
+- name: install kafka broker systemd unit file
+  template:
+    src: ../templates/confluent-server.service.j2
+    dest: /etc/systemd/system/confluent-server.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload systemd
+
+- name: render kakfa broker config file
+  template:
+    src: ../templates/server.properties.j2
+    dest: "{{ kafka_path }}/latest/config/server.properties"
+    owner: kafka
+    group: kafka
+    mode: 0640
+    backup: yes
+  notify: restart kafka broker service
+
+- name: start and enable kafka broker service
+  systemd:
+    name: confluent-server
+    state: started
+    enabled: yes
+
+
+# - name: install zookeeper systemd unit file
+#   template:
+#     src: ../templates/confluent-zookeeper.service.j2
+#     dest: /etc/systemd/system/confluent-zookeeper.service
+#     owner: root
+#     group: root
+#     mode: 0644
+#   notify: reload systemd
+#
+# - name: render zookeeper config file
+#   template:
+#     src: ../templates/zookeeper.properties.j2
+#     dest: "{{ kafka_path }}/latest/config/zookeeper.properties"
+#     owner: kafka
+#     group: kafka
+#     mode: 0640
+#     backup: yes
+#   notify: restart zookeeper
+#
+# - name: start and enable zookeeper service
+#   systemd:
+#     name: confluent-zookeeper
+#     state: started
+#     enabled: yes
+
+
+
+...

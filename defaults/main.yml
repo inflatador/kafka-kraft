@@ -1,0 +1,6 @@
+---
+kafka_path: /opt/kafka
+kafka_vers: 3.0.0
+scala_vers: 2.13
+zookeeper_datadir: /opt/kafka/zookeeper
+...
