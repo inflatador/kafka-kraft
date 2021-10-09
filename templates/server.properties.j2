@@ -29,6 +29,7 @@ broker.id= {{ ansible_eth1.ipv4.address.split('.')[3] }}
 #   EXAMPLE:
 #     listeners = PLAINTEXT://your.host.name:9092
 #listeners=PLAINTEXT://:9092
+listeners = PLAINTEXT://{{ ansible_eth1.ipv4.address }}:9092
 
 # Hostname and port the broker will advertise to producers and consumers. If not set,
 # it uses the value for "listeners" if configured.  Otherwise, it will use the value

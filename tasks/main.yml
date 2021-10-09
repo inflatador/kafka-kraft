@@ -101,6 +101,17 @@
     state: started
     enabled: yes
 
+- name: add kafka bin path to all users' PATH
+  template:
+    src: ../templates/kafka_path.sh.j2
+    dest: /etc/profile.d/kafka_path.sh
+    owner: root
+    group: root
+    mode: 0644
+    seuser: system_u
+    serole: object_r
+    setype: bin_t
+    selevel: s0
 
 # - name: install zookeeper systemd unit file
 #   template:
