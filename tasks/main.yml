@@ -48,10 +48,10 @@
     state: directory
     owner: kafka
     group: kafka
-    mode: 0755
+    mode: 0750
     recurse: yes
   loop:
-    - "{{ kafka_path }}"
+    - "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/logs/kraft-combined-logs"
     - "{{ kafka_log_dir }}"
 
 # https://downloads.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz
@@ -76,6 +76,13 @@
     src: "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}"
     dest: "{{ kafka_path }}/latest"
 
+- name: set execute bit on files in bin dir
+  file:
+    path: "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/bin/"
+    state: directory
+    mode: 0750
+    recurse: yes
+
 - name: install kafka broker systemd unit file
   template:
     src: ../templates/confluent-server.service.j2
@@ -88,18 +95,12 @@
 - name: render kakfa broker config file
   template:
     src: ../templates/server.properties.j2
-    dest: "{{ kafka_path }}/latest/config/server.properties"
+    dest: "{{ kafka_path }}/latest/config/kraft/server.properties"
     owner: kafka
     group: kafka
     mode: 0640
     backup: yes
   notify: restart kafka broker service
-
-- name: start and enable kafka broker service
-  systemd:
-    name: confluent-server
-    state: started
-    enabled: yes
 
 - name: add kafka bin path to all users' PATH
   template:
@@ -112,6 +113,22 @@
     serole: object_r
     setype: bin_t
     selevel: s0
+
+- name: check if kraft logs dir has been initialized
+  shell: "{{ kafka_path }}/latest/bin/kafka-storage.sh info -c {{ kafka_path }}/latest/config/kraft/server.properties"
+  register: storage_init
+  ignore_errors: yes
+
+- name: init kraft logs dir
+  shell: "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/bin/kafka-storage.sh format -t {{ kafka_cluster_id }} -c {{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/config/kraft/server.properties"
+  when: '"is not formatted" in storage_init.stdout'
+
+- name: start and enable kafka broker service
+  systemd:
+    name: confluent-server
+    state: started
+    enabled: yes
+
 
 # - name: install zookeeper systemd unit file
 #   template:

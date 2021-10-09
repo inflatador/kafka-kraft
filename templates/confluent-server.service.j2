@@ -5,7 +5,7 @@ After=network.target remote-fs.target
 [Service]
 Type=simple
 User=kafka
-ExecStart=/bin/sh -c '{{ kafka_path }}/latest/bin/kafka-server-start.sh {{ kafka_path }}/latest/config/server.properties'
+ExecStart=/bin/sh -c '{{ kafka_path }}/latest/bin/kafka-server-start.sh {{ kafka_path }}/latest/config/kraft/server.properties'
 ExecStop={{ kafka_path }}/latest/bin/kafka-server-stop.sh
 Restart=on-abnormal
 
