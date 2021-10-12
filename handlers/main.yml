@@ -18,12 +18,12 @@
     mode: 0750
     recurse: yes
 
-- name: restart zookeeper
-  systemd:
-    name: confluent-zookeeper
-    state: restarted
+# - name: restart zookeeper
+#   systemd:
+#     name: confluent-zookeeper
+#     state: restarted
 
-- name: restart kafka broker service
+- name: restart kafka service
   systemd:
     name: confluent-server
     state: restarted

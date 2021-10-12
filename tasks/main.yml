@@ -10,7 +10,7 @@
 #
 # - name: see if group_vars worked
 #   debug:
-#     msg: "{{ kafka_broker_rules }}"
+#     msg: "{{ kafka_service_rules }}"
 #
 
 - name: Set SELinux to permissive
@@ -19,10 +19,10 @@
     state: permissive
 
 # must not use quotes in the block: section
-- name: insert broker-specific iptables rules
+- name: insert service-specific iptables rules
   blockinfile:
     block: |
-      {{ kafka_broker_rules }}
+      {{ kafka_service_rules }}
     path: "{{ iptables_path }}"
     insertafter: "## BEGIN HOST-SPECIFIC RULES"
   notify: load iptables rules
@@ -83,7 +83,7 @@
     mode: 0750
     recurse: yes
 
-- name: install kafka broker systemd unit file
+- name: install kafka service systemd unit file
   template:
     src: ../templates/confluent-server.service.j2
     dest: /etc/systemd/system/confluent-server.service
@@ -92,7 +92,7 @@
     mode: 0644
   notify: reload systemd
 
-- name: render kakfa broker config file
+- name: render kakfa service config file
   template:
     src: ../templates/server.properties.j2
     dest: "{{ kafka_path }}/latest/config/kraft/server.properties"
@@ -100,7 +100,7 @@
     group: kafka
     mode: 0640
     backup: yes
-  notify: restart kafka broker service
+  notify: restart kafka service
 
 - name: add kafka bin path to all users' PATH
   template:
@@ -123,7 +123,7 @@
   shell: "{{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/bin/kafka-storage.sh format -t {{ kafka_cluster_id }} -c {{ kafka_path }}/kafka_{{scala_vers}}-{{kafka_vers}}/config/kraft/server.properties"
   when: '"is not formatted" in storage_init.stdout'
 
-- name: start and enable kafka broker service
+- name: start and enable kafka service service
   systemd:
     name: confluent-server
     state: started

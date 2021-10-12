@@ -29,7 +29,7 @@ node.id={{ ansible_eth1.ipv4.address.split('.')[3] }}
 # The connect string for the controller quorum
 # controller.quorum.voters=1@localhost:9093
 # controller.quorum.voters=1@localhost:9092,2@localhost:9093,3@localhost:9094
-controller.quorum.voters={% for node in kafka_broker_ips -%}
+controller.quorum.voters={% for node in kafka_service_ips -%}
 {% if loop.index == loop.length -%}
 {{ node.split('.')[3] }}@{{ node }}:9093
 {% else %}
