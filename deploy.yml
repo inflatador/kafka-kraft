@@ -1,0 +1,11 @@
+---
+
+- name: install roles for kafka kraft
+  hosts: all
+  become: yes
+  gather_facts: true
+
+  roles:
+    - kafka-kraft
+
+...
